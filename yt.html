@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SirTros Video</title>
+    <style>
+        :root { --bg: #0f0f0f; --text: #f1f1f1; --yt-red: #ff0000; --panel: #272727; --hover: #3f3f3f; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .header { height: 56px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-bottom: 1px solid #222; }
+        .logo { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; font-size: 20px; }
+        .play-icon { background: var(--yt-red); width: 32px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .arrow { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid white; margin-left: 2px; }
+        .search-bar { width: 400px; background: #121212; border: 1px solid #333; border-radius: 40px; padding: 8px 16px; color: white; outline: none; }
+
+        .main-wrapper { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 240px; padding: 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #222; }
+        .nav-item { padding: 12px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 20px; font-size: 14px; }
+        .nav-item:hover { background: var(--hover); }
+        .nav-item.active { background: var(--panel); font-weight: bold; }
+
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .thumb { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; }
+        .thumb video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: #444; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* ZMENŠENÉ LOGO PRO ODBĚRY */
+        .mini-logo { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+        .mini-logo img { width: 100%; height: 100%; object-fit: cover; }
+
+        #page-player { display: none; max-width: 1000px; margin: 0 auto; width: 100%; }
+        .big-vid { width: 100%; aspect-ratio: 16/9; border-radius: 12px; background: #000; }
+        .actions-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .btn-group { display: flex; background: var(--panel); border-radius: 20px; overflow: hidden; }
+        .act-btn { background: none; border: none; color: white; padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .act-btn.active { background: white !important; color: black !important; font-weight: bold; }
+        
+        .sub-btn { background: white; color: black; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .sub-btn.active { background: var(--panel); color: #aaa; }
+
+        .list-item { display: flex; align-items: center; gap: 15px; padding: 10px; cursor: pointer; border-radius: 10px; }
+        .list-item:hover { background: var(--panel); }
+        .del-btn { margin-left: auto; background: none; border: none; color: #aaa; cursor: pointer; font-size: 18px; padding: 5px 10px; }
+        .del-btn:hover { color: #ff4444; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo" onclick="window.location.hash=''; location.reload();">
+            <div class="play-icon"><div class="arrow"></div></div> SirTros Video
+        </div>
+        <input type="text" id="search" class="search-bar" placeholder="Hledat..." oninput="renderGrid()">
+    </header>
+
+    <div class="main-wrapper">
+        <nav class="sidebar">
+            <div class="nav-item active" id="btn-home" onclick="window.location.hash=''; location.reload();">🏠 Domů</div>
+            <div class="nav-item" id="btn-subs" onclick="goTo('subs')">🔔 Odběry</div>
+            <div class="nav-item" id="btn-hist" onclick="goTo('hist')">🕒 Historie</div>
+        </nav>
+        <main class="content">
+            <div id="page-home" class="view"><div class="video-grid" id="grid"></div></div>
+            <div id="page-subs" class="view" style="display:none;"><h2>Vaše odběry</h2><div id="subs-list"></div></div>
+            <div id="page-hist" class="view" style="display:none;"><h2>Historie sledování</h2><div id="hist-list"></div></div>
+            
+            <div id="page-player" class="view">
+                <video id="player" class="big-vid" controls></video>
+                <h1 id="p-title" style="margin: 10px 0; font-size: 22px;"></h1>
+                <div class="actions-row">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="avatar" id="p-logo"></div>
+                        <b id="p-chan"></b>
+                        <button class="sub-btn" id="p-sub" onclick="handleSub()">Odebírat</button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="act-btn" id="l-btn" onclick="setVote('l')">👍 Like</button>
+                        <button class="act-btn" id="d-btn" onclick="setVote('d')">👎</button>
+                        <button class="act-btn" onclick="shareVid()">📤 Sdílet</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const videa = [
+            { id: 1, src: "video1.mp4", tit: "SirTros-city prohlídka", ch: "SirTros" },
+        ];
+
+        let odbery = new Set(JSON.parse(localStorage.getItem('odbery') || "[]"));
+        let lajky = JSON.parse(localStorage.getItem('lajky') || "{}");
+        let historie = JSON.parse(localStorage.getItem('historie') || "[]").filter(x => x && x.id);
+        let aktuální = null;
+
+        const getLogo = (n) => `<img src="logo.png" onerror="this.src='https://ui-avatars.com{n}&background=random&color=fff'">`;
+
+        function renderGrid() {
+            const q = document.getElementById('search').value.toLowerCase();
+            const filtered = videa.filter(v => v.tit.toLowerCase().includes(q) || v.ch.toLowerCase().includes(q));
+            document.getElementById('grid').innerHTML = filtered.map(v => `
+                <div onclick="playVid(${v.id})" style="cursor:pointer">
+                    <div class="thumb"><video src="${v.src}#t=0.1" preload="metadata" muted></video></div>
+                    <div style="display:flex; gap:12px; margin-top:12px;">
+                        <div class="avatar">${getLogo(v.ch)}</div>
+                        <div><b>${v.tit}</b><br><small style="color:#aaa;">${v.ch}</small></div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function playVid(id) {
+            aktuální = videa.find(x => x.id === id);
+            if(!aktuální) return;
+            window.location.hash = "video" + id;
+            const player = document.getElementById('player');
+            player.src = aktuální.src;
+            document.getElementById('p-title').innerText = aktuální.tit;
+            document.getElementById('p-chan').innerText = aktuální.ch;
+            document.getElementById('p-logo').innerHTML = getLogo(aktuální.ch);
+            historie = [aktuální, ...historie.filter(x => x && x.id !== id)].slice(0, 20);
+            localStorage.setItem('historie', JSON.stringify(historie));
+            goTo('player');
+            updateVoteUI(); 
+            updateSubUI();
+            player.play().catch(() => {});
+        }
+
+        function renderLists(p) {
+            const list = document.getElementById(p + '-list');
+            const items = p === 'subs' ? Array.from(odbery) : historie;
+            list.innerHTML = items.length ? "" : "<p style='color:#aaa;'>Zatím tu nic není.</p>";
+            items.forEach(i => {
+                if(!i) return;
+                if(p === 'subs') {
+                    list.innerHTML += `<div class="list-item" style="gap:10px; padding:6px 10px;"><div class="mini-logo">${getLogo(i)}</div><b style="font-size:14px;">${i}</b></div>`;
+                } else {
+                    list.innerHTML += `<div onclick="playVid(${i.id})" class="list-item"><video src="${i.src}#t=0.1" style="width:120px; border-radius:8px;"></video><div style="margin-left:10px;"><b>${i.tit}</b><br><small style="color:#aaa;">${i.ch}</small></div><button class="del-btn" onclick="event.stopPropagation(); deleteFromHist(${i.id})">✕</button></div>`;
+                }
+            });
+        }
+
+        function deleteFromHist(id) {
+            historie = historie.filter(x => x.id !== id);
+            localStorage.setItem('historie', JSON.stringify(historie));
+            renderLists('hist');
+        }
+
+        function goTo(p) {
+            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + p).style.display = 'block';
+            if(document.getElementById('btn-' + p)) document.getElementById('btn-' + p).classList.add('active');
+            if(p !== 'player') { document.getElementById('player').pause(); if(p==='subs'||p==='hist') renderLists(p); }
+        }
+
+        function setVote(t) {
+            lajky[aktuální.id] = (lajky[aktuální.id] === t) ? null : t;
+            localStorage.setItem('lajky', JSON.stringify(lajky));
+            updateVoteUI();
+        }
+
+        function updateVoteUI() {
+            document.getElementById('l-btn').classList.toggle('active', lajky[aktuální?.id] === 'l');
+            document.getElementById('d-btn').classList.toggle('active', lajky[aktuální?.id] === 'd');
+        }
+
+        function handleSub() {
+            if(odbery.has(aktuální.ch)) odbery.delete(aktuální.ch); else odbery.add(aktuální.ch);
+            localStorage.setItem('odbery', JSON.stringify([...odbery]));
+            updateSubUI();
+        }
+
+        function updateSubUI() {
+            const isS = odbery.has(aktuální?.ch);
+            const b = document.getElementById('p-sub');
+            if(b) { b.innerText = isS ? "Odebíráno" : "Odebírat"; b.classList.toggle('active', isS); }
+        }
+
+        async function shareVid() {
+            try { if (navigator.share) await navigator.share({ title: aktuální.tit, url: window.location.href }); else throw 1; } 
+            catch { navigator.clipboard.writeText(window.location.href); alert("Odkaz zkopírován!"); }
+        }
+
+        window.onload = () => { renderGrid(); const h = window.location.hash; if(h.startsWith('#video')) playVid(parseInt(h.replace('#video', ''))); };
+    </script>
+</body>
+</html>
