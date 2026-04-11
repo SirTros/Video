@@ -60,8 +60,7 @@
     <div class="main-wrapper">
         <nav class="sidebar">
             <div class="nav-item active" id="btn-home" onclick="window.location.hash=''; location.reload();">🏠 Domů</div>
-            <div class="nav-item" id="btn-subs" onclick="goTo('subs')">🔔 Odběry</div>
-            <div class="nav-item" id="btn-hist" onclick="goTo('hist')">🕒 Historie</div>
+
         </nav>
         <main class="content">
             <div id="page-home" class="view"><div class="video-grid" id="grid"></div></div>
@@ -89,7 +88,7 @@
 
     <script>
         const videa = [
-            { id: 1, src: "https://photos.google.com/share/AF1QipMd8pD17pp9ddny5mQRYqb5tTu8fJazZg1u9oepaKC-QpwaZhp-nd37ZWgB4lYrYQ/photo/AF1QipOlyYoUxW8VyLAbx-HmXHZ6fxFkGxo1QFXGICbB?key=TWdINkxlVWlYTnhuSGQzVkVwTzFhM0UwV2xIOHln", tit: "SirTros-city prohlídka ep. 01", ch: "SirTros" },
+            { id: 1, src: "https://vimeo.com/1182203504", tit: "SirTros Minihry | Jak se připojit", ch: "SirTros" },
         ];
 
         let odbery = new Set(JSON.parse(localStorage.getItem('odbery') || "[]"));
@@ -113,21 +112,49 @@
         }
 
         function playVid(id) {
-            aktuální = videa.find(x => x.id === id);
-            if(!aktuální) return;
-            window.location.hash = "video" + id;
-            const player = document.getElementById('player');
-            player.src = aktuální.src;
-            document.getElementById('p-title').innerText = aktuální.tit;
-            document.getElementById('p-chan').innerText = aktuální.ch;
-            document.getElementById('p-logo').innerHTML = getLogo(aktuální.ch);
-            historie = [aktuální, ...historie.filter(x => x && x.id !== id)].slice(0, 20);
-            localStorage.setItem('historie', JSON.stringify(historie));
-            goTo('player');
-            updateVoteUI(); 
-            updateSubUI();
-            player.play().catch(() => {});
-        }
+    aktuální = videa.find(x => x.id === id);
+    if(!aktuální) return;
+
+    window.location.hash = "video" + id;
+
+    const playerBox = document.getElementById('page-player');
+
+    // Vimeo ID vytáhneme
+    let vimeoMatch = aktuální.src.match(/vimeo\.com\/(\d+)/);
+
+    if(vimeoMatch) {
+        const vid = vimeoMatch[1];
+
+        document.getElementById('player').outerHTML = `
+            <iframe id="player" class="big-vid"
+                src="https://player.vimeo.com/video/${vid}"
+                frameborder="0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        `;
+    } else {
+        playerBox.innerHTML = playerBox.innerHTML.replace(
+            /<iframe[^>]*id="player"[^>]*><\/iframe>/,
+            `<video id="player" class="big-vid" controls></video>`
+        );
+
+        const p = document.getElementById('player');
+        p.src = aktuální.src;
+        p.play().catch(() => {});
+    }
+
+    document.getElementById('p-title').innerText = aktuální.tit;
+    document.getElementById('p-chan').innerText = aktuální.ch;
+    document.getElementById('p-logo').innerHTML = getLogo(aktuální.ch);
+
+    historie = [aktuální, ...historie.filter(x => x && x.id !== id)].slice(0, 20);
+    localStorage.setItem('historie', JSON.stringify(historie));
+
+    goTo('player');
+    updateVoteUI();
+    updateSubUI();
+}
 
         function renderLists(p) {
             const list = document.getElementById(p + '-list');
@@ -150,12 +177,35 @@
         }
 
         function goTo(p) {
-            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('page-' + p).style.display = 'block';
-            if(document.getElementById('btn-' + p)) document.getElementById('btn-' + p).classList.add('active');
-            if(p !== 'player') { document.getElementById('player').pause(); if(p==='subs'||p==='hist') renderLists(p); }
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    document.getElementById('page-' + p).style.display = 'block';
+
+    if(document.getElementById('btn-' + p))
+        document.getElementById('btn-' + p).classList.add('active');
+
+    if(p !== 'player') {
+        const p = document.getElementById('player');
+        if (p && p.tagName === 'VIDEO') {
+        if(p === 'hist' || p === 'subs') {
+        const el = document.getElementById('page-player');
+        el.innerHTML = `
+        <video id="player" class="big-vid" controls></video>
+        <h1 id="p-title"></h1>
+        <div class="actions-row"></div>
+    `;
+}
+        p.pause();
+        
+}
+
+        // 🔥 TOTO CHYBÍ
+        if(p === 'subs' || p === 'hist') {
+            renderLists(p);
         }
+    }
+}
 
         function setVote(t) {
             lajky[aktuální.id] = (lajky[aktuální.id] === t) ? null : t;
