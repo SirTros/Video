@@ -795,12 +795,12 @@ Historie je prázdná.
 // SUPABASE
 // ===========================
 
-const SUPABASE_URL = "https://thcpkomwqirnsthwsbab.supabase.co/";
+const SUPABASE_URL = "https://thcpkomwqirnsthwsbab.supabase.co";
 const SUPABASE_KEY = "sb_publishable_psbTX5zdREimrnH0jMnl5A_0wb1k_UE";
 
 
 const supabaseClient = supabase.createClient(
-    "https://thcpkomwqirnsthwsbab.supabase.co/",
+    "https://thcpkomwqirnsthwsbab.supabase.co",
     "sb_publishable_psbTX5zdREimrnH0jMnl5A_0wb1k_UE"
 );
 
@@ -942,10 +942,10 @@ onclick="playVideo(${v.id})">
 
 <div class="thumbnail">
 
-<video muted preload="metadata">
-
-<source src="${v.src}">
-
+<video 
+src="${v.src}"
+muted
+preload="metadata">
 </video>
 
 </div>
@@ -1002,9 +1002,13 @@ document.getElementById("player");
 
 
 
+openPage("player-page");
+
 player.src=video.src;
 
-player.play();
+player.load();
+
+player.play().catch(()=>{});
 
 
 
@@ -1017,8 +1021,6 @@ document.getElementById("video-channel")
 .innerText=video.channel;
 
 
-
-openPage("player-page");
 
 
 
